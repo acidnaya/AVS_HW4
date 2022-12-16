@@ -55,18 +55,9 @@ pthread_mutex_t portfolio_mutex = PTHREAD_MUTEX_INITIALIZER;
 // mutex для добавления в каталог, обеспечивает безопасность взаимодействия с ним потоков
 pthread_mutex_t map_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// функция считывающая пользовательский ввод – положительное целое число меньше заданной границы
-int get_positive_number(int bound, std::string s) {
-    int a = -1;
-    while (a < 1 || a > bound) {
-        std::cout << "Enter a positive number in [1; " << bound << "] – amount of " << s << ":\n";
-        std::cin >> a;
-    }
-    return a;
-}
-
 // функция генерирующая книги в рандомном порядке на полках библиотеки
 std::vector<book> generate_books(int rows, int shelfs, int positions) {
+    std::cout << "Generating books in library...\n";
     std::vector<int> v;
     std::vector<book> books;
     int books_amount = rows * shelfs * positions;
@@ -85,6 +76,7 @@ std::vector<book> generate_books(int rows, int shelfs, int positions) {
             }
         }
     }
+    std::cout << "Books are generated.\n";
     return books;
 }
 
@@ -117,6 +109,7 @@ void *catalog_book(void *arg) {
         // студент-поток записывает свой идентификатор (для дальнейшего вывода)
         current_book.student = *student;
         pthread_mutex_lock(&map_mutex);
+        std::cout << "Student " << *student << " wrote book # " << current_book.id << "\tinto catalog.\n";
         // студент-поток вносит запись в каталог
         catalog.insert(std::pair<int, book>(current_book.id, current_book));
         pthread_mutex_unlock(&map_mutex);
@@ -126,6 +119,24 @@ void *catalog_book(void *arg) {
 // функция выводящая одну запись из каталога
 void print_book_info(book b) {
     std::cout << "ID:\t" << b.id << ",\tROW:\t" << b.row << ",\tSHELF:\t" << b.shelf << ",\tPOS:\t" << b.position <<"\t(by Student " << b.student << ")\n";
+}
+
+// функция валидирующая параметры
+bool validate(int number, int boundary) {
+    if (number < 1 || number > boundary) {
+        return false;
+    }
+    return true;
+}
+
+// функция считывающая пользовательский ввод – положительное целое число меньше заданной границы
+int get_positive_number(int boundary, std::string s) {
+    int a = -1;
+    while (!validate(a, boundary)) {
+        std::cout << "Enter a positive number in [1; " << boundary << "] – amount of " << s << ":\n";
+        std::cin >> a;
+    }
+    return a;
 }
 
 int main(int argc, char *argv[]) {
@@ -139,6 +150,10 @@ int main(int argc, char *argv[]) {
         shelfs = atoi(argv[2]);
         positions = atoi(argv[3]);
         threads = atoi(argv[4]);
+        if (!(validate(rows, 100) && validate(shelfs, 100) && validate(positions, 100) && validate(threads, 8))) {
+            std::cout << "Incorrect input.\n";
+            return 0;
+        }
     } else {
         // консольный ввод
         rows = get_positive_number(100, "rows");
@@ -154,7 +169,7 @@ int main(int argc, char *argv[]) {
     pthread_t students[threads];
     // массив идентификаторов потоков
     int thread[threads];
-
+    std::cout << "Students have joined work.\n";
     for (int i = 0; i < threads; ++i) {
         // заполнение идентификаторов
         thread[i] = i + 1;
@@ -163,12 +178,13 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < threads; ++i) {
-        // запуск работы потоков
+        // завершение работы потоков
         pthread_join(students[i], nullptr);
     }
+    std::cout << "Students have completed work.\n";
 
     // вывод каталога
-    printf("* * * CATALOG * * *\n");
+    printf("\n* * * * * * * * * * * *  CATALOG  * * * * * * * * * * * *\n");
     for (const std::pair<int, book>& items : catalog) {
         print_book_info(items.second);
     }
