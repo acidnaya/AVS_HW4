@@ -236,6 +236,7 @@ g++ -o prog -lpthread main.cpp
 ### (6 баллов) Реализован ввод данных из командной строки
 Реализован.
 
-### Тестирование
+### Примеры работы программы
 
-![Тестирование](https://github.com/acidnaya/AVS_HW3/blob/main/screenshots/testing11.png)
+![Пример](https://github.com/acidnaya/AVS_HW4/blob/main/screenshots/example_1.png)
+![Пример](https://github.com/acidnaya/AVS_HW4/blob/main/screenshots/example_2.png)
