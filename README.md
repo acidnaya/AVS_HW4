@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
         shelfs = atoi(argv[2]);
         positions = atoi(argv[3]);
         threads = atoi(argv[4]);
-        if (!(validate(rows, 100) && validate(shelfs, 100) && validate(positions, 100) && validate(threads, 8))) {
+        if (!(validate(rows, 100) && validate(shelfs, 100) && validate(positions, 100) && validate(threads, 100))) {
             std::cout << "Incorrect input.\n";
             return 0;
         }
@@ -159,11 +159,13 @@ int main(int argc, char *argv[]) {
         rows = get_positive_number(100, "rows");
         shelfs = get_positive_number(100, "shelfs");
         positions = get_positive_number(100, "positions");
-        threads = get_positive_number(8, "students");
+        threads = get_positive_number(100, "students");
     }
 
     // инициализация переменных, которые будут использоваться потоком
     initialize_globals(rows, shelfs, positions);
+    pthread_mutex_init(&portfolio_mutex, nullptr);
+    pthread_mutex_init(&map_mutex, nullptr);
 
     // массив заданного числа потоков
     pthread_t students[threads];
@@ -181,6 +183,8 @@ int main(int argc, char *argv[]) {
         // завершение работы потоков
         pthread_join(students[i], nullptr);
     }
+    pthread_mutex_destroy(&portfolio_mutex);
+    pthread_mutex_destroy(&map_mutex);
     std::cout << "Students have completed work.\n";
 
     // вывод каталога
