@@ -26,8 +26,8 @@
 struct book{
     int id;
     int row;
-    int bookshelf;
     int shelf;
+    int position;
     int student;
 
     book() {}
@@ -35,8 +35,8 @@ struct book{
     book(int i, int r, int s, int p) {
         id = i;
         row = r;
-        bookshelf = s;
-        shelf = p;
+        shelf = s;
+        position = p;
         student = 0;
     }
 };
@@ -66,18 +66,18 @@ int get_positive_number(int bound, std::string s) {
 }
 
 // функция генерирующая книги в рандомном порядке на полках библиотеки
-std::vector<book> generate_books(int rows, int bookshelfs, int shelfs) {
+std::vector<book> generate_books(int rows, int shelfs, int positions) {
     std::vector<int> v;
     std::vector<book> books;
-    int books_amount = rows * bookshelfs * shelfs;
+    int books_amount = rows * shelfs * positions;
     for (int i = 1; i <= books_amount; ++i) {
         v.push_back(i);
     }
     std::random_device rd;
     std::mt19937 gen(rd());
     for (int r = 1; r <= rows; ++r) {
-        for (int s = 1; s <= bookshelfs; ++s) {
-            for (int p = 1; p <= shelfs; ++p) {
+        for (int s = 1; s <= shelfs; ++s) {
+            for (int p = 1; p <= positions; ++p) {
                 std::uniform_int_distribution<> distr(0, v.size() - 1);
                 int i = distr(gen);
                 books.push_back(book(v[i], r, s, p));
@@ -89,9 +89,9 @@ std::vector<book> generate_books(int rows, int bookshelfs, int shelfs) {
 }
 
 // инициализатор глобальных переменных
-void initialize_globals(int rows, int bookshelfs, int shelfs) {
+void initialize_globals(int rows, int shelfs, int positions) {
     portfolio_task = 0;
-    library = generate_books(rows, bookshelfs, shelfs);
+    library = generate_books(rows, shelfs, positions);
 }
 
 // функция каталогизирования для потоков
@@ -118,25 +118,37 @@ void *catalog_book(void *arg) {
         current_book.student = *student;
         pthread_mutex_lock(&map_mutex);
         // студент-поток вносит запись в каталог
-        catalog.insert({current_book.id, current_book});
+        catalog.insert(std::pair<int, book>(current_book.id, current_book));
         pthread_mutex_unlock(&map_mutex);
     }
 }
 
 // функция выводящая одну запись из каталога
 void print_book_info(book b) {
-    std::cout << "ID:\t" << b.id << ",\tROW:\t" << b.row << ",\tSHELF:\t" << b.bookshelf << ",\tPOS:\t" << b.shelf <<"\t(by Student " << b.student << ")\n";
+    std::cout << "ID:\t" << b.id << ",\tROW:\t" << b.row << ",\tSHELF:\t" << b.shelf << ",\tPOS:\t" << b.position <<"\t(by Student " << b.student << ")\n";
 }
 
-int main() {
-    // консольный ввод
-    int rows = get_positive_number(100, "rows");
-    int bookshelfs = get_positive_number(100, "bookshelfs");
-    int shelfs = get_positive_number(100, "shelfs");
-    int threads = get_positive_number(8, "students");
+int main(int argc, char *argv[]) {
+    int rows;
+    int shelfs;
+    int positions;
+    int threads;
+    if (argc == 5) {
+        // ввод данных из командной строки
+        rows = atoi(argv[1]);
+        shelfs = atoi(argv[2]);
+        positions = atoi(argv[3]);
+        threads = atoi(argv[4]);
+    } else {
+        // консольный ввод
+        rows = get_positive_number(100, "rows");
+        shelfs = get_positive_number(100, "shelfs");
+        positions = get_positive_number(100, "positions");
+        threads = get_positive_number(8, "students");
+    }
 
     // инициализация переменных, которые будут использоваться потоком
-    initialize_globals(rows, bookshelfs, shelfs);
+    initialize_globals(rows, shelfs, positions);
 
     // массив заданного числа потоков
     pthread_t students[threads];
@@ -157,11 +169,16 @@ int main() {
 
     // вывод каталога
     printf("* * * CATALOG * * *\n");
-    for (const auto& items : catalog) {
+    for (const std::pair<int, book>& items : catalog) {
         print_book_info(items.second);
     }
     return 0;
 }
+```
+
+Компиляция:
+```sh
+g++ -o prog -lpthread main.cpp
 ```
 
 ### (4 балла) Описана модель параллельных вычислений, используемая при разработке многопоточной программы.
@@ -172,11 +189,15 @@ int main() {
 Целое число в диапазоне [1, 100] - количество полок в ряду.\
 Целое число в диапазоне [1, 100] - количество мест на полке.\
 Целое число в диапазоне [1, 8] - количество студентов.
+Возможен ввод из командной строки в формате:
+```sh
+./prog rows_number bookshelfs_number positions_number students_number
+```
+Если количество аргументов форматной строки не равно 4, то будет запущен консольный ввод. Если аргументы не являются числами или находятся в недопустимом диапазоне, то исполнение программы прервется. Номера книг и их позиции в библиотеке будут сгенерированы в соответствии с входными данными.
 ### (4 балла) Реализовано консольное приложение, решающее поставленную задачу с использованием одного варианта синхропримитивов.
-Код представлен выше.
+Код представлен выше. Использовались мьютексы.
 ### (4 балла) Ввод данных в приложение реализован с консоли.
-Данные вводятся с консоли.
-
+Реализован.
 ### (5 баллов) В программу добавлены комментарии, поясняющие выполняемые действия и описание используемых переменных.
 С комментариями можно ознакомится выше.
 ### (5 баллов) Сценарий, описывающий одновременное поведение представленных в условии задания сущностей в терминах предметной области. То есть, описано поведение объектов разрабатываемой программы как взаимодействующих субъектов, а не то, как это будет реализовано в программе.
@@ -190,7 +211,7 @@ int main() {
 
 ### (6 баллов) Подробно описан обобщенный алгоритм, используемый при реализации программы исходного словесного сценария. В котором показано, как на программу отображается каждый из субъектов предметной области.
 ### (6 баллов) Реализован ввод данных из командной строки
-Нет, еще нет! УЖас совсем забыла
+Реализован.
 
 ### Тестирование
 
